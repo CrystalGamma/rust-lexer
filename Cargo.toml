@@ -1,0 +1,5 @@
+[package]
+
+name = "lexer"
+version = "0.0.1"
+authors = ["Jona Stubbe (CrystalGamma) <dev@jona-stubbe.de>"]
