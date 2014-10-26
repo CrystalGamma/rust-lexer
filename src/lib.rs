@@ -16,7 +16,6 @@ pub struct Token {
 #[deriving(PartialEq)]
 pub enum TokenContent {
 	Identifier(String),
-	Macro(String),
 	DelimOpen(Delimiter),
 	DelimClose(Delimiter),
 	Assign, // =
@@ -37,9 +36,6 @@ impl Show for TokenContent {
 	fn fmt(&self, format: &mut Formatter) -> Result<(), FormatError> {
 		match *self {
 			Identifier(ref s) => format.pad(s.as_slice()),
-			Macro(ref s) => format_args!(
-				|args: &Arguments|{args.fmt(format)},
-				"{}!", s),
 			DelimOpen(typ) => format.pad(match typ {
 				Brace => "'{'",
 				Parenthesis => "'('",
@@ -236,22 +232,12 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 					}
 				}
 				let str_ = String::from_chars(id.as_slice());
-				if self.lookahead != '!' {
-					Some(Ok(Token {
-						content: Identifier(str_),
-						line: self.line,
-						start: start,
-						end: self.column
-					}))
-				} else {
-					proceed!();
-					Some(Ok(Token {
-						content: Macro(str_),
-						line: self.line,
-						start: start,
-						end: self.column
-					}))
-				}
+				Some(Ok(Token {
+					content: Identifier(str_),
+					line: self.line,
+					start: start,
+					end: self.column
+				}))
 			},
 			c => {
 				match self.read.read_char() {
