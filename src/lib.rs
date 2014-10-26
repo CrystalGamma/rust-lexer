@@ -23,6 +23,8 @@ pub enum TokenContent {
 	Equals, // ==
 	Colon, // :
 	Scope, // ::
+	Bang, // !
+	UnEqual, // !=
 	Other(char)
 }
 #[deriving(PartialEq)]
@@ -51,6 +53,8 @@ impl Show for TokenContent {
 			Equals => format.pad("'=='"),
 			Colon => format.pad("':'"),
 			Scope => format.pad("'::'"),
+			Bang => format.pad("'!'"),
+			UnEqual => format.pad("'!='"),
 			Other(c) => format_args!(
 				|args: &Arguments|{args.fmt(format)},
 				"other: '{}'", c)
@@ -203,6 +207,26 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 				} else {
 					Some(Ok(Token {
 						content: Colon,
+						line: self.line,
+						start: col,
+						end: self.column
+					}))
+				}
+			},
+			'!' => {
+				let col = self.column;
+				proceed!();
+				if self.lookahead == '=' {
+					proceed!();
+					Some(Ok(Token {
+						content: UnEqual,
+						line: self.line,
+						start: col,
+						end: self.column
+					}))
+				} else {
+					Some(Ok(Token {
+						content: Bang,
 						line: self.line,
 						start: col,
 						end: self.column
