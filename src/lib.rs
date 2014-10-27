@@ -6,12 +6,12 @@ use std::fmt::{Show, Formatter, FormatError, Arguments};
 #[deriving(PartialEq)]
 /// A token of Rust source code
 pub struct Token {
-	content: TokenContent,
-	line: uint,
+	pub content: TokenContent,
+	pub line: uint,
 	/// starting column of the token
-	start: uint,
+	pub start: uint,
 	/// end column of the token
-	end: uint
+	pub end: uint
 }
 #[deriving(PartialEq)]
 pub enum TokenContent {
@@ -20,14 +20,16 @@ pub enum TokenContent {
 	DelimClose(Delimiter),
 	Assign, // =
 	Arrow, // =>
+	#[cfg(not(core_profile))]
 	Equals, // ==
 	Colon, // :
 	Scope, // ::
-	Bang, // !
+	Bang, // ! 
+	#[cfg(not(core_profile))]
 	UnEqual, // !=
 	Other(char)
 }
-#[deriving(PartialEq)]
+#[deriving(PartialEq,Show)]
 pub enum Delimiter {
 	Brace,
 	Parenthesis,
