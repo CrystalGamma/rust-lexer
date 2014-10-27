@@ -3,7 +3,7 @@
 use std::io::{Buffer, IoResult, EndOfFile};
 use std::fmt::{Show, Formatter, FormatError, Arguments};
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq,Clone)]
 /// A token of Rust source code
 pub struct Token {
 	pub content: TokenContent,
@@ -13,23 +13,22 @@ pub struct Token {
 	/// end column of the token
 	pub end: uint
 }
-#[deriving(PartialEq)]
+#[deriving(PartialEq,Clone)]
 pub enum TokenContent {
 	Identifier(String),
 	DelimOpen(Delimiter),
 	DelimClose(Delimiter),
 	Assign, // =
 	Arrow, // =>
-	#[cfg(not(core_profile))]
 	Equals, // ==
 	Colon, // :
 	Scope, // ::
-	Bang, // ! 
-	#[cfg(not(core_profile))]
+	Bang, // !
 	UnEqual, // !=
+	Hash, // #
 	Other(char)
 }
-#[deriving(PartialEq,Show)]
+#[deriving(PartialEq,Show,Clone)]
 pub enum Delimiter {
 	Brace,
 	Parenthesis,
@@ -57,6 +56,7 @@ impl Show for TokenContent {
 			Scope => format.pad("'::'"),
 			Bang => format.pad("'!'"),
 			UnEqual => format.pad("'!='"),
+			Hash => format.pad("'#'"),
 			Other(c) => format_args!(
 				|args: &Arguments|{args.fmt(format)},
 				"other: '{}'", c)
