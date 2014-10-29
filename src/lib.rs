@@ -1,6 +1,6 @@
 #![feature(macro_rules)]
 
-use std::io::{Buffer, IoResult, EndOfFile};
+use std::io::{Buffer, IoResult, IoError, EndOfFile};
 use std::fmt::{Show, Formatter, FormatError, Arguments};
 
 #[deriving(PartialEq,Clone)]
@@ -16,47 +16,29 @@ pub struct Token {
 #[deriving(PartialEq,Clone)]
 pub enum TokenContent {
 	Identifier(String),
-	DelimOpen(Delimiter),
-	DelimClose(Delimiter),
-	Assign, // =
+	Lifetime(String),
 	Arrow, // =>
 	Equals, // ==
-	Colon, // :
 	Scope, // ::
-	Bang, // !
 	UnEqual, // !=
-	Hash, // #
+	Char(char),
 	Other(char)
-}
-#[deriving(PartialEq,Show,Clone)]
-pub enum Delimiter {
-	Brace,
-	Parenthesis,
-	Bracket
 }
 
 impl Show for TokenContent { 
 	fn fmt(&self, format: &mut Formatter) -> Result<(), FormatError> {
 		match *self {
 			Identifier(ref s) => format.pad(s.as_slice()),
-			DelimOpen(typ) => format.pad(match typ {
-				Brace => "'{'",
-				Parenthesis => "'('",
-				Bracket => "'['",
-			}),
-			DelimClose(typ) => format.pad(match typ {
-				Brace => "'}'",
-				Parenthesis => "')'",
-				Bracket => "']'",
-			}),
-			Assign => format.pad("'='"),
+			Lifetime(ref s) => format_args!(
+				|args: &Arguments|{args.fmt(format)},
+				"'{}", s),
 			Arrow => format.pad("'=>'"),
 			Equals => format.pad("'=='"),
-			Colon => format.pad("':'"),
 			Scope => format.pad("'::'"),
-			Bang => format.pad("'!'"),
 			UnEqual => format.pad("'!='"),
-			Hash => format.pad("'#'"),
+			Char(c) => format_args!(
+				|args: &Arguments|{args.fmt(format)},
+				"'{}'", c),
 			Other(c) => format_args!(
 				|args: &Arguments|{args.fmt(format)},
 				"other: '{}'", c)
@@ -149,24 +131,6 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 			Err(e) => return Some(Err(e))
 		}
 		match self.lookahead {
-			c @ '{' | c @  '(' | c @ '[' | c @ ']' | c @ ')' | c @ '}' => {
-				let col = self.column;
-				proceed!();
-				Some(Ok(Token {
-					content: match c {
-						'{' => DelimOpen(Brace),
-						'}' => DelimClose(Brace),
-						'(' => DelimOpen(Parenthesis),
-						')' => DelimClose(Parenthesis),
-						'[' => DelimOpen(Bracket),
-						']' => DelimClose(Bracket),
-						_ => unreachable!()
-					},
-					line: self.line,
-					start: col,
-					end: self.column
-				}))
-			},
 			'=' => {
 				let col = self.column;
 				proceed!();
@@ -188,7 +152,7 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 					}))
 				} else {
 					Some(Ok(Token {
-						content: Assign,
+						content: Other('='),
 						line: self.line,
 						start: col,
 						end: self.column
@@ -208,7 +172,7 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 					}))
 				} else {
 					Some(Ok(Token {
-						content: Colon,
+						content: Other(':'),
 						line: self.line,
 						start: col,
 						end: self.column
@@ -228,13 +192,68 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 					}))
 				} else {
 					Some(Ok(Token {
-						content: Bang,
+						content: Other('!'),
 						line: self.line,
 						start: col,
 						end: self.column
 					}))
 				}
 			},
+			'/' => {
+				let col = self.column;
+				proceed!();
+				match self.lookahead {
+					'/' => {
+						proceed!();
+						while self.lookahead != '\n' {
+							proceed!();
+						}
+						self.next()
+					},
+					_ => Some(Ok(Token {
+						content: Other('/'),
+						line: self.line,
+						start: col,
+						end: self.column
+					}))
+				}
+			}
+			'\'' => {
+				let col = self.column;
+				proceed!();
+				if self.lookahead.is_XID_start() || self.lookahead == '_' {
+					let tok = match self.next() {
+						Some(Ok(x)) => x,
+						Some(Err(e)) => return Some(Err(e)),
+						None => return Some(Err(IoError {
+							kind: EndOfFile,
+							desc: "End of file while reading Character literal",
+							detail: None
+						}))
+					};
+					match tok.content {
+						Identifier(id) => if id.as_slice().char_len() > 1 || self.lookahead != '\'' {
+							Some(Ok(Token {
+								content: Lifetime(id),
+								line: self.line,
+								start: col,
+								end: self.column
+							}))
+						} else {
+							proceed!();
+							Some(Ok(Token {
+								content: Char(id.as_slice().char_at(0)),
+								line: self.line,
+								start: col,
+								end: self.column
+							}))
+						},
+						_ => fail!()
+					}
+				} else {
+					unimplemented!();
+				}
+			}
 			_ if self.lookahead.is_XID_start() || self.lookahead == '_' => {
 				let start = self.column;
 				let mut id: Vec<char> = Vec::with_capacity(16);
