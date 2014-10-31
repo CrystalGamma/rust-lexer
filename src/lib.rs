@@ -13,7 +13,7 @@ pub struct Token {
 	/// end column of the token
 	pub end: uint
 }
-#[deriving(PartialEq,Clone)]
+#[deriving(PartialEq,Clone,Eq)]
 pub enum TokenContent {
 	Identifier(String),
 	Lifetime(String),
