@@ -248,7 +248,7 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 								end: self.column
 							}))
 						},
-						_ => fail!()
+						_ => panic!()
 					}
 				} else {
 					unimplemented!();
@@ -308,7 +308,7 @@ fn lex_empty() {
 		std::io::BufferedReader::new(
 			std::io::MemReader::new(std::vec::as_vec(b"fn main() {\n}").clone()))) {
 		Ok(x) => x,
-		Err(e) => fail!("{}", e)
+		Err(e) => panic!("{}", e)
 	};
 	let expected = vec!(
 		Token {content: Identifier("fn".to_string()), line: line_start, start: 1, end: 3},
@@ -320,7 +320,7 @@ fn lex_empty() {
 	for (a, b) in lex.zip(expected.iter()) {
 		let act = match a {
 			Ok(x) => x,
-			Err(e) => fail!("{}", e)
+			Err(e) => panic!("{}", e)
 		};
 		println!("{} {}", act, b);
 		assert_eq!(act, *b);
