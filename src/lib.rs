@@ -109,6 +109,36 @@ impl<T: Buffer> Lexer<T> {
 		}
 		Ok(false)
 	}
+	fn parsechar(&mut self) -> IoResult<char> {
+		match self.lookahead {
+			'\\' => {
+				self.lookahead = try!(self.read.read_char());
+				let c = match self.lookahead {
+					'u' => unimplemented!(),
+					'\\' => '\\',
+					'\'' => '\'',
+					'"' => '"',
+					'n' => '\n',
+					't' => '\t',
+					_ => return Err(IoError {
+						kind: std::io::OtherIoError,
+						desc: "unknown escape sequence starting with '{}'",
+						detail: None
+					})
+				};
+				self.lookahead = match self.read.read_char() {
+					Ok(c) => c,
+					Err(ref e) if e.kind == EndOfFile => '\0',
+					Err(e) => return Err(e)
+				};
+				Ok(c)
+			},
+			c @ _ => {
+				self.lookahead = try!(self.read.read_char());
+				Ok(c)
+			}
+		}
+	}
 }
 
 impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
@@ -251,7 +281,34 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 						_ => panic!()
 					}
 				} else {
-					unimplemented!();
+					let col = self.column;
+					let line = self.line;
+					let c = match self.parsechar() {
+						Ok(c) => c,
+						Err(e) => return Some(Err(e))
+					};
+					match self.lookahead {
+						'\0' => Some(Err(IoError {
+							kind: EndOfFile,
+							desc: "End of file while reading character literal",
+							detail: None
+						})),
+						'\'' => {
+							let end = self.column;
+							proceed!();
+							Some(Ok(Token {
+								content: Char(c),
+								line: line,
+								start: col,
+								end: end
+							}))
+						},
+						_ => Some(Err(IoError {
+							kind: std::io::OtherIoError,
+							desc: "unclosed character literal",
+							detail: None
+						}))
+					}
 				}
 			}
 			_ if self.lookahead.is_XID_start() || self.lookahead == '_' => {
