@@ -17,6 +17,7 @@ pub struct Token {
 pub enum TokenContent {
 	Identifier(String),
 	Lifetime(String),
+	StringLiteral(String),
 	Arrow, // =>
 	Equals, // ==
 	Scope, // ::
@@ -32,6 +33,9 @@ impl Show for TokenContent {
 			Lifetime(ref s) => format_args!(
 				|args: &Arguments|{args.fmt(format)},
 				"'{}", s),
+			StringLiteral(ref s) => format_args!(
+				|args: &Arguments|{args.fmt(format)},
+				"\"{}\"", s),
 			Arrow => format.pad("'=>'"),
 			Equals => format.pad("'=='"),
 			Scope => format.pad("'::'"),
@@ -310,7 +314,33 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 						}))
 					}
 				}
-			}
+			},
+			'"' => {
+				let start_line = self.line;
+				let col = self.column;
+				proceed!();
+				let mut text: Vec<char> = Vec::new();
+				while self.lookahead != '"' && self.lookahead != '\0' {
+					text.push(match self.parsechar() {
+						Ok(c) => c,
+						Err(e) => return Some(Err(e))
+					});
+				}
+				if self.lookahead == '\0' {
+					return Some(Err(IoError {
+						kind: EndOfFile,
+						desc: "End of file while reading string literal",
+						detail: None
+					}));
+				}
+				proceed!();
+				Some(Ok(Token {
+					content: StringLiteral(String::from_chars(text.as_slice())),
+					line: start_line,
+					start: col,
+					end: self.column
+				}))
+			},
 			_ if self.lookahead.is_XID_start() || self.lookahead == '_' => {
 				let start = self.column;
 				let mut id: Vec<char> = Vec::with_capacity(16);
