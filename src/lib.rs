@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #![feature(macro_rules)]
+#![feature(globs)]
 
 use std::io::{Buffer, IoResult, IoError, EndOfFile};
 use std::fmt::{Show, Formatter, FormatError, Arguments};
@@ -45,6 +46,7 @@ pub enum TokenContent {
 
 impl Show for TokenContent { 
 	fn fmt(&self, format: &mut Formatter) -> Result<(), FormatError> {
+		use TokenContent::*;
 		match *self {
 			Identifier(ref s) => format.pad(s.as_slice()),
 			Lifetime(ref s) => format_args!(
@@ -164,6 +166,7 @@ impl<T: Buffer> Lexer<T> {
 
 impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 	fn next(&mut self) -> Option<IoResult<Token>> {
+		use TokenContent::*;
 		macro_rules! proceed(
 			()=>({
 				self.column += 1;
