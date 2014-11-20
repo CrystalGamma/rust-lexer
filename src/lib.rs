@@ -73,7 +73,7 @@ impl Show for Token {
 	fn fmt(&self, format: &mut Formatter) -> Result<(), FormatError> {
 		format_args!(
 			|args: &Arguments|{args.fmt(format)},
-			"{:u}:{:u}-{:u}: {}",
+			"{}:{}-{}: {}",
 			self.line,
 			self.start,
 			self.end,
