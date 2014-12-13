@@ -19,7 +19,7 @@
 #![feature(globs)]
 
 use std::io::{Buffer, IoResult, IoError, EndOfFile};
-use std::fmt::{Show, Formatter, FormatError, Arguments};
+use std::fmt::{Show, Formatter, Error, Arguments};
 
 #[deriving(PartialEq,Clone)]
 /// A token of Rust source code
@@ -45,7 +45,7 @@ pub enum TokenContent {
 }
 
 impl Show for TokenContent { 
-	fn fmt(&self, format: &mut Formatter) -> Result<(), FormatError> {
+	fn fmt(&self, format: &mut Formatter) -> Result<(), Error> {
 		use TokenContent::*;
 		match *self {
 			Identifier(ref s) => format.pad(s.as_slice()),
@@ -70,7 +70,7 @@ impl Show for TokenContent {
 }
 
 impl Show for Token {
-	fn fmt(&self, format: &mut Formatter) -> Result<(), FormatError> {
+	fn fmt(&self, format: &mut Formatter) -> Result<(), Error> {
 		format_args!(
 			|args: &Arguments|{args.fmt(format)},
 			"{}:{}-{}: {}",
@@ -275,7 +275,7 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 			'\'' => {
 				let col = self.column;
 				proceed!();
-				if self.lookahead.is_XID_start() || self.lookahead == '_' {
+				if self.lookahead.is_xid_start() || self.lookahead == '_' {
 					let tok = match self.next() {
 						Some(Ok(x)) => x,
 						Some(Err(e)) => return Some(Err(e)),
@@ -361,7 +361,7 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 					end: self.column
 				}))
 			},
-			_ if self.lookahead.is_XID_start() || self.lookahead == '_' => {
+			_ if self.lookahead.is_xid_start() || self.lookahead == '_' => {
 				let start = self.column;
 				let mut id: Vec<char> = Vec::with_capacity(16);
 				id.push(self.lookahead);
@@ -369,7 +369,7 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 					match self.read.read_char() {
 						Ok(c) => {
 							self.column += 1;
-							if c.is_XID_continue() {
+							if c.is_xid_continue() {
 								id.push(c);
 							} else {
 								self.lookahead = c;
