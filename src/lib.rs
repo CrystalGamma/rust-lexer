@@ -19,7 +19,7 @@
 #![feature(globs)]
 
 use std::io::{Buffer, IoResult, IoError, EndOfFile};
-use std::fmt::{Show, Formatter, Error, Arguments};
+use std::fmt::{Show, Formatter, Error};
 
 #[deriving(PartialEq,Clone)]
 /// A token of Rust source code
@@ -49,35 +49,25 @@ impl Show for TokenContent {
 		use TokenContent::*;
 		match *self {
 			Identifier(ref s) => format.pad(s.as_slice()),
-			Lifetime(ref s) => format_args!(
-				|args: &Arguments|{args.fmt(format)},
-				"'{}", s),
-			StringLiteral(ref s) => format_args!(
-				|args: &Arguments|{args.fmt(format)},
-				"\"{}\"", s),
+			Lifetime(ref s) => format_args!("'{}", s).fmt(format),
+			StringLiteral(ref s) => format_args!("\"{}\"", s).fmt(format),
 			Arrow => format.pad("'=>'"),
 			Equals => format.pad("'=='"),
 			Scope => format.pad("'::'"),
 			UnEqual => format.pad("'!='"),
-			Char(c) => format_args!(
-				|args: &Arguments|{args.fmt(format)},
-				"'{}'", c),
-			Other(c) => format_args!(
-				|args: &Arguments|{args.fmt(format)},
-				"other: '{}'", c)
+			Char(c) => format_args!("'{}'", c).fmt(format),
+			Other(c) => format_args!("other: '{}'", c).fmt(format)
 		}
 	}
 }
 
 impl Show for Token {
 	fn fmt(&self, format: &mut Formatter) -> Result<(), Error> {
-		format_args!(
-			|args: &Arguments|{args.fmt(format)},
-			"{}:{}-{}: {}",
+		format_args!("{}:{}-{}: {}",
 			self.line,
 			self.start,
 			self.end,
-			self.content)
+			self.content).fmt(format)
 	}
 }
 
