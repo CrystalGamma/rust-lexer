@@ -276,7 +276,8 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 						}))
 					};
 					match tok.content {
-						Identifier(id) => if id.as_slice().char_len() > 1 || self.lookahead != '\'' {
+						Identifier(id) => if id.as_slice().chars().count() > 1
+							|| self.lookahead != '\'' { //TODO: better solution for chars().count() > 1
 							Some(Ok(Token {
 								content: Lifetime(id),
 								line: self.line,
@@ -345,7 +346,7 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 				}
 				proceed!();
 				Some(Ok(Token {
-					content: StringLiteral(String::from_chars(text.as_slice())),
+					content: StringLiteral(text.into_iter().collect()),
 					line: start_line,
 					start: col,
 					end: self.column
@@ -373,7 +374,7 @@ impl<T: Buffer> Iterator<IoResult<Token>> for Lexer<T> {
 						Err(e) => return Some(Err(e))
 					}
 				}
-				let str_ = String::from_chars(id.as_slice());
+				let str_ = id.into_iter().collect();
 				Some(Ok(Token {
 					content: Identifier(str_),
 					line: self.line,
